@@ -7,10 +7,12 @@ use SilverStripe\GarbageCollector\Processors\SQLExpressionProcessor;
 use SilverStripe\Assets\File;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\ClassInfo;
+use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\Queries\SQLExpression;
 use SilverStripe\ORM\Queries\SQLDelete;
 use SilverStripe\ORM\Queries\SQLSelect;
 use SilverStripe\ORM\ValidationException;
@@ -19,6 +21,8 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 class VersionedCollector extends AbstractCollector
 {
+    use Configurable;
+    use Extensible;
     /**
      * Number of latest versions which will always be kept
      *
@@ -85,34 +89,36 @@ class VersionedCollector extends AbstractCollector
     public function getCollections(): array
     {
         // Format data into job specific format so it's easy to consume
-        $data = [];
+        $collections = [];
 
-        foreach ($groups as $records) {
-            foreach ($records as $recordId => $recordData) {
-                foreach ($recordData as $class => $versions) {
-                    $data[] = $this->deleteVersionsQuery($class, $recordId, $versions);
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * Find versions that need to be deleted and package them into jobs
-     *
-     * @throws ValidationException
-     */
-    public function processVersionsForDeletion(): void
-    {
         $classes = $this->getBaseClasses();
 
         foreach ($classes as $class) {
             // Process only one class at a time so we don't exhaust memory
             $records = $this->getRecordsForDeletion([$class]);
-            $versions = $this->getVersionsForDeletion($records);
-            $this->queueDeletionJobsForVersionGroups($versions);
+            $versionData = $this->getVersionsForDeletion($records);
+
+            if (empty($versionData)) {
+                return $collections;
+            }
+
+            foreach ($versionData as $records) {
+                foreach ($records as $recordId => $recordData) {
+                    foreach ($recordData as $class => $versions) {
+                        if (empty($versions)) {
+                            return $collections;
+                        }
+
+                        do {
+                            $batch = array_splice($versions, 0, $this->config()->get('deletion_version_limit'));
+                            $collections[] = $this->deleteVersionsQuery($class, $recordId, $batch);
+                        } while (!empty($versions) && count($collections) <= $this->config()->get('query_limit'));
+                    }
+                }
+            }
         }
+
+        return $collections;
     }
 
     /**
@@ -120,7 +126,7 @@ class VersionedCollector extends AbstractCollector
      *
      * @return array
      */
-    public function getBaseClasses(): array
+    protected function getBaseClasses(): array
     {
         $classes = $this->config()->get('base_classes');
 
@@ -147,7 +153,7 @@ class VersionedCollector extends AbstractCollector
      * @param array $classes
      * @return array
      */
-    public function getRecordsForDeletion(array $classes): array
+    protected function getRecordsForDeletion(array $classes): array
     {
         $keepLimit = (int) $this->config()->get('keep_limit');
         $recordLimit = (int) $this->config()->get('deletion_record_limit');
@@ -228,10 +234,10 @@ class VersionedCollector extends AbstractCollector
      * @param array $records
      * @return array
      */
-    public function getVersionsForDeletion(array $records): array
+    protected function getVersionsForDeletion(array $records): array
     {
         $keepLimit = (int) $this->config()->get('keep_limit');
-        $versionLimit = (int) $this->config()->get('deletion_version_limit');
+        $versionLimit = (int) $this->config()->get('deletion_version_limit') * $this->config()->get('query_limit');
         $deletionDate = DBDatetime::create_field('Datetime', DBDatetime::now()->Rfc2822())
             ->modify(sprintf('- %d days', $this->config()->get('keep_lifetime')))
             ->Rfc2822();
@@ -300,11 +306,12 @@ class VersionedCollector extends AbstractCollector
 
                     $data[$class][] = $version;
                 }
+                $data[$class] = array_reverse($data[$class]);
 
                 if (count($data) === 0) {
                     continue;
                 }
-
+                
                 $versions[$baseClass][$recordId] = $data;
             }
         }
@@ -318,9 +325,9 @@ class VersionedCollector extends AbstractCollector
      * @param string $class
      * @param int $recordId
      * @param array $versions
-     * @return int
+     * @return SQLExpression
      */
-    public function deleteVersionsQuery(string $class, int $recordId, array $versions): int
+    protected function deleteVersionsQuery(string $class, int $recordId, array $versions): SQLExpression
     {
         if (count($versions) === 0) {
             // Nothing to delete
@@ -403,7 +410,7 @@ class VersionedCollector extends AbstractCollector
             ->uninherited('table_name');
 
         // Fallback to class name if no table name is specified
-        return $this->getVersionTableName($table ?: $class);
+        return $table ?: $class;
     }
 
     /**

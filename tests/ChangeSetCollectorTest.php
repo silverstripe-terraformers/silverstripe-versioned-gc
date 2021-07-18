@@ -51,9 +51,9 @@ class ChangeSetCollectorTest extends SapphireTest
      * @throws ValidationException
      * @dataProvider collectionsProvider
      */
-    public function testGetCollections(string $class, string $id, string $modifyDate = null, array $expected = [], int $deletion_limit = null): void
+    public function testGetCollections(string $id, string $modifyDate = null, array $expected = [], int $deletion_limit = null): void
     {
-        $model = $this->objFromFixture($class, $id);
+        $model = $this->objFromFixture(Ship::class, $id);
         $this->createTestVersions($model);
         $baseClass = $model->baseClass();
 
@@ -87,20 +87,17 @@ class ChangeSetCollectorTest extends SapphireTest
     {
         return [
             'No versions passed lifetime' => [
-                Ship::class,
                 'ship1'
             ],
             'Versions passed lifetime' => [
-                Ship::class,
-                'ship1',
+                'ship2',
                 '+ 110 days',
                 [
                     [ 4, 5, 6 ]
                 ]
             ],
             'Versions passed lifetime, Multi Query' => [
-                Ship::class,
-                'ship1',
+                'ship3',
                 '+ 110 days',
                 [
                     [ 7, 8 ],
