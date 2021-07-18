@@ -19,8 +19,6 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 class VersionedCollector extends AbstractCollector
 {
-    use Configurable;
-
     /**
      * Number of latest versions which will always be kept
      *
@@ -55,7 +53,7 @@ class VersionedCollector extends AbstractCollector
      * @config
      * @var integer
      */
-    private static $query_limit = 100000;
+    private static $query_limit = 10;
 
     /**
      * @var array

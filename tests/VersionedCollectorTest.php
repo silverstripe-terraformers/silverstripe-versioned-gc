@@ -15,4 +15,9 @@ class VersionedCollectorTest extends SapphireTest
     {
         $this->assertInstanceOf(VersionedCollector::class, GarbageCollectorService::inst()->getCollectors()[0]);
     }
+
+    public function testGetCollection()
+    {
+        
+    }
 }
