@@ -75,7 +75,7 @@ class VersionedCollector extends AbstractCollector
         SQLExpressionProcessor::class,
     ];
 
-    
+
     public function getName(): string
     {
         return 'VersionedCollector';
@@ -299,6 +299,9 @@ class VersionedCollector extends AbstractCollector
                 while ($result = $results->next()) {
                     $version = (int) $result['Version'];
                     $class = $result['ClassName'];
+                    // Some classes may no longer be available,
+                    // we still want to delete at least part of their version records
+                    $class = class_exists($class) ? $class : $baseClass;
 
                     if (!array_key_exists($class, $data)) {
                         $data[$class] = [];
@@ -311,7 +314,7 @@ class VersionedCollector extends AbstractCollector
                 if (count($data) === 0) {
                     continue;
                 }
-                
+
                 $versions[$baseClass][$recordId] = $data;
             }
         }
