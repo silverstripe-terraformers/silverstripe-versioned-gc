@@ -1,5 +1,7 @@
 # SilverStripe Garbage Collection Module
 
+[![PHPUnit](https://github.com/brettt89/silverstripe-versioned-gc/actions/workflows/php.yml/badge.svg)](https://github.com/brettt89/silverstripe-versioned-gc/actions/workflows/php.yml) [![codecov](https://codecov.io/gh/brettt89/silverstripe-versioned-gc/branch/master/graph/badge.svg?token=FEEEJP8377)](https://codecov.io/gh/brettt89/silverstripe-versioned-gc)
+
 :warning: :warning: **Warning: *In Development - Not Production Ready!*** :warning: :warning:
 
 ## Overview
