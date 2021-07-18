@@ -1,0 +1,6 @@
+---
+Name: Versioned-Garbage-Collection
+---
+SilverStripe\GarbageCollector\GarbageCollectorService:
+  collectors:
+    - SilverStripe\VersionedGC\VersionedCollector

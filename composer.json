@@ -1,0 +1,32 @@
+{
+    "name": "brettt89/silverstripe-versioned-gc",
+    "description": "Silverstripe Versioned Garbage Collection",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Brett Tasker",
+            "email": "brett.tasker@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SilverStripe\\VersionedGC\\": "src/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/brettt89/silverstripe-garbage-collector"
+        }
+    ],
+    "require": {
+        "brettt89/silverstripe-garbage-collector": "dev-master",
+        "silverstripe/versioned": "^1"
+    },
+    "require-dev": {
+        "sminnee/phpunit": "^5.7",
+        "squizlabs/php_codesniffer": "^3"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
